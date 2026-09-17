@@ -1,29 +1,51 @@
- # Dopamine Protocol
+# Dopamine Protocol
 
-> **Decentralized Accountability Infrastructure & Proof-of-Action Network**
+**Decentralized Proof-of-Action Market for Human Discipline**
 
-Dopamine Protocol is a Web3 platform designed to digitize human commitment using smart contracts, AI verification, and non-transferable reputation tokens (MOTIV).
+Dopamine Protocol turns personal discipline into a financial asset. Users stake capital on verifiable goals, doubters fund counter-pools, and AI + staked human validators verify execution. Winners claim the pool and mint MOTIV — an unbuyable Soulbound reputation token.
 
----
+## Problem
 
-### 📌 Core Architecture & Immutability
-The official Litepaper and Core Manifesto are cryptographically anchored in IPFS to ensure absolute transparency and immutability.
+- $500B+ self-improvement industry
+- 90% of personal goals fail within weeks
+- No accountability, no consequences, no verification
 
-* **IPFS CID:** `bafybeib4rteqxzeoh62xhbgl6v6v6y6xpjyrutm6a5tkbwhb7w6aynxwx4
-* **IPFS Gateway:** https://gateway.pinata.cloud/ipfs/bafybeib4rteqxzeoh62xhbgl6v6v6y6xpjyrutm6a5tkbwhb7w6aynxwx4
+## Solution
 
----
+A decentralized market where users bet on themselves:
 
-### ⚙️ Key Mechanics
-* **Commitment & Stake:** Users lock a financial deposit in a smart contract tied to a specific real-world goal.
-* **AI Verification:** Machine learning models verify execution and proof-of-action.
-* **Reputation Minting:** Successful completion unlocks the deposit and mints a non-transferable **MOTIV** Soulbound token.
-* **Slashing:** Quitting or failing results in a forfeit of the stake.
+1. **Stake & Challenge** — User commits to a verifiable goal and stakes capital
+2. **Market Creation** — Doubters fund the counter-pool
+3. **Proof Submission** — User submits encrypted video + biometric data
+4. **Consensus & Payout** — AI + MOTIV-staked validators verify. Smart contracts execute.
 
----
+## 3-Token Architecture
 
-### 🛡️ Execution & Vision
-Built on principles of radical transparency, real-world risk management, and true **Skin in the Game**.
+| Token | Function | Peg |
+|-------|----------|-----|
+| **DOPE** | Stakes, prediction pools, prizes | 1:1 USDC |
+| **TIME** | Services marketplace, mentorship | 1:1 USDC |
+| **MOTIV** | Soulbound reputation (non-transferable) | Not for sale |
 
-* **Stage:** Pre-seed / Protocol Design
-* **Contact:** max@dopamineprotocol.io
+## Documentation
+
+- [Core Architecture](docs/Core_Architecture.md)
+- [Tokenomics](docs/Tokenomics.md)
+- [Roadmap](docs/Roadmap.md)
+
+## Tech Stack
+
+- **Blockchain:** Polygon PoS (EVM)
+- **Smart Contracts:** Solidity
+- **Verification:** Chainlink Oracles + AI + staked validators
+- **UI:** Web3Auth + Telegram Mini App
+
+## Status
+
+Phase 1 — Architecture & Whitepaper Validation. Seeking pre-seed.
+
+## Contact
+
+- Email: max@dopamineprotocol.io
+- LinkedIn: https://www.linkedin.com/in/maksym-nereyko-0b7240434/
+- X: https://x.com/Max_Dopamine
