@@ -49,3 +49,8 @@ Phase 1 — Architecture & Whitepaper Validation. Seeking pre-seed.
 - Email: max@dopamineprotocol.io
 - LinkedIn: https://www.linkedin.com/in/maksym-nereyko-0b7240434/
 - X: https://x.com/Max_Dopamine
+## Smart Contract (Solana Devnet)
+- **Program Name:** `dopamine_escrow`
+- **Network:** Solana Devnet
+- **Program ID:** `AUWtLgwXV2wxFoKRHo5NTiDW15q867ynR2Stky81JhT9`
+- **Solana Explorer:** [View on Solana Explorer (Devnet)](https://explorer.solana.com/address/AUWtLgwXV2wxFoKRHo5NTiDW15q867ynR2Stky81JhT9?cluster=devnet)
