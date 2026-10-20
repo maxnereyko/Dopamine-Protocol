@@ -22,7 +22,7 @@ A decentralized market where users bet on themselves:
 ## 3-Token Architecture
 
 | Token | Function | Peg |
-|-------|----------|-----|
+|---|---|---|
 | **DOPE** | Stakes, prediction pools, prizes | 1:1 USDC |
 | **TIME** | Services marketplace, mentorship | 1:1 USDC |
 | **MOTIV** | Soulbound reputation (non-transferable) | Not for sale |
@@ -35,22 +35,28 @@ A decentralized market where users bet on themselves:
 
 ## Tech Stack
 
-- **Blockchain:** Polygon PoS (EVM)
-- **Smart Contracts:** Solidity
-- **Verification:** Chainlink Oracles + AI + staked validators
+- **Blockchain:** Solana
+- **Smart Contracts:** Rust (Anchor Framework)
+- **Token Standard:** SPL Token & Token-2022 (`NonTransferable` Soulbound standard for `MOTIV`)
+- **Verification:** AI Oracles + Staked Validators
 - **UI:** Web3Auth + Telegram Mini App
 
 ## Status
 
-Phase 1 — Architecture & Whitepaper Validation. Seeking pre-seed.
+**Status:** Dual Pools + `MOTIV` minting logic deployed and tested on Solana Devnet (`Seeking pre-seed`).
+- Creator stake + Doubter counter-pool settlement works on-chain (`src/lib.rs`).
+- Winner receives 100% of the pool + 1 `MOTIV` reputation token.
+- Automated test suite (`tests/anchor.test.ts`) and client verification script (`client/src/index.ts`) passing on Devnet.
 
-## Contact
-
-- Email: max@dopamineprotocol.io
-- LinkedIn: https://www.linkedin.com/in/maksym-nereyko-0b7240434/
-- X: https://x.com/Max_Dopamine
 ## Smart Contract (Solana Devnet)
+
 - **Program Name:** `dopamine_escrow`
 - **Network:** Solana Devnet
 - **Program ID:** `AUWtLgwXV2wxFoKRHo5NTiDW15q867ynR2Stky81JhT9`
 - **Solana Explorer:** [View on Solana Explorer (Devnet)](https://explorer.solana.com/address/AUWtLgwXV2wxFoKRHo5NTiDW15q867ynR2Stky81JhT9?cluster=devnet)
+
+## Contact
+
+- **Email:** max@dopamineprotocol.io
+- **LinkedIn:** https://www.linkedin.com/in/maksym-nereyko-0b7240434/
+- **X:** https://x.com/Max_Dopamine
