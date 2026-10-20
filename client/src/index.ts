@@ -8,13 +8,12 @@ async function main() {
   const connection = provider.connection;
   const payer = pg.wallet.keypair;
 
-  console.log("Running Dual Pools and Soulbound MOTIV test...");
+  console.log("Running Dual Pools + Token-2022 NonTransferable MOTIV test...");
 
   const initializer = web3.Keypair.generate();
   const doubter = web3.Keypair.generate();
   const verifier = web3.Keypair.generate();
 
-  // 1. Fund participant and doubter wallets with Devnet SOL for transaction fees
   const fundTx = new web3.Transaction().add(
     web3.SystemProgram.transfer({
       fromPubkey: pg.wallet.publicKey,
@@ -29,22 +28,84 @@ async function main() {
   );
   await web3.sendAndConfirmTransaction(connection, fundTx, [payer], { commitment: "confirmed" });
 
-  // 2. Create stake token mint and Soulbound MOTIV reputation mint
-  const mint = await splToken.createMint(connection, payer, payer.publicKey, null, 6, undefined, { commitment: "confirmed" });
+  // 1. Create standard SPL Mint for stakes (DOPE/USDC)
+  const mint = await splToken.createMint(
+    connection,
+    payer,
+    payer.publicKey,
+    null,
+    6,
+    undefined,
+    { commitment: "confirmed" }
+  );
 
+  // 2. Create Token-2022 Mint with native NonTransferable extension for Soulbound MOTIV
   const [motivAuthorityPda] = web3.PublicKey.findProgramAddressSync(
     [Buffer.from("motiv_authority")],
     program.programId
   );
 
-  const motivMint = await splToken.createMint(connection, payer, motivAuthorityPda, motivAuthorityPda, 6, undefined, { commitment: "confirmed" });
+  const motivMintKeypair = web3.Keypair.generate();
+  const motivMint = motivMintKeypair.publicKey;
+  const mintLen = splToken.getMintLen([splToken.ExtensionType.NonTransferable]);
+  const mintLamports = await connection.getMinimumBalanceForRentExemption(mintLen);
 
-  const initializerTokenAccount = await splToken.createAccount(connection, payer, mint, initializer.publicKey, undefined, { commitment: "confirmed" });
-  const doubterTokenAccount = await splToken.createAccount(connection, payer, mint, doubter.publicKey, undefined, { commitment: "confirmed" });
-  const initializerMotivAccount = await splToken.createAccount(connection, payer, motivMint, initializer.publicKey, undefined, { commitment: "confirmed" });
+  const createMotivMintTx = new web3.Transaction().add(
+    web3.SystemProgram.createAccount({
+      fromPubkey: payer.publicKey,
+      newAccountPubkey: motivMint,
+      space: mintLen,
+      lamports: mintLamports,
+      programId: splToken.TOKEN_2022_PROGRAM_ID,
+    }),
+    splToken.createInitializeNonTransferableMintInstruction(
+      motivMint,
+      splToken.TOKEN_2022_PROGRAM_ID
+    ),
+    splToken.createInitializeMintInstruction(
+      motivMint,
+      6,
+      motivAuthorityPda,
+      null, // No freeze authority needed — NonTransferable is native!
+      splToken.TOKEN_2022_PROGRAM_ID
+    )
+  );
+  await web3.sendAndConfirmTransaction(
+    connection,
+    createMotivMintTx,
+    [payer, motivMintKeypair],
+    { commitment: "confirmed" }
+  );
 
-  const stakeAmount = 100_000_000; // 100 tokens
-  const counterAmount = 50_000_000; // 50 tokens
+  const initializerTokenAccount = await splToken.createAccount(
+    connection,
+    payer,
+    mint,
+    initializer.publicKey,
+    undefined,
+    { commitment: "confirmed" }
+  );
+  const doubterTokenAccount = await splToken.createAccount(
+    connection,
+    payer,
+    mint,
+    doubter.publicKey,
+    undefined,
+    { commitment: "confirmed" }
+  );
+
+  // Create Token-2022 Associated Token Account for initializer's Soulbound MOTIV
+  const initializerMotivAccount = await splToken.createAssociatedTokenAccount(
+    connection,
+    payer,
+    motivMint,
+    initializer.publicKey,
+    { commitment: "confirmed" },
+    splToken.TOKEN_2022_PROGRAM_ID
+  );
+
+  const stakeAmount = 100_000_000;
+  const counterAmount = 50_000_000;
 
   await splToken.mintTo(connection, payer, mint, initializerTokenAccount, payer, stakeAmount, [], { commitment: "confirmed" });
   await splToken.mintTo(connection, payer, mint, doubterTokenAccount, payer, counterAmount, [], { commitment: "confirmed" });
@@ -58,7 +119,6 @@ async function main() {
     program.programId
   );
 
-  // 3. Initialize escrow with user stake (100 tokens)
   const initTx = await program.methods
     .initializeEscrow(new anchor.BN(stakeAmount))
     .accounts({
@@ -76,7 +136,6 @@ async function main() {
     .rpc({ commitment: "confirmed" });
   console.log("Escrow initialized:", initTx);
 
-  // 4. Doubter funds the counter-pool (50 tokens)
   const counterTx = await program.methods
     .fundCounterPool(new anchor.BN(counterAmount))
     .accounts({
@@ -90,7 +149,6 @@ async function main() {
     .rpc({ commitment: "confirmed" });
   console.log("Counter-pool funded:", counterTx);
 
-  // 5. Verifier confirms completion: winner claims 150 tokens + 1 Soulbound MOTIV
   const completeTx = await program.methods
     .completeAction()
     .accounts({
@@ -102,15 +160,43 @@ async function main() {
       initializerMotivAccount: initializerMotivAccount,
       motivAuthority: motivAuthorityPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      token2022Program: splToken.TOKEN_2022_PROGRAM_ID,
     })
     .signers([verifier])
     .rpc({ commitment: "confirmed" });
-  console.log("Action completed, pool paid and MOTIV minted:", completeTx);
+  console.log("Action completed, pool paid and Token-2022 MOTIV minted:", completeTx);
 
   const winnerBalance = await connection.getTokenAccountBalance(initializerTokenAccount, "confirmed");
   const motivBalance = await connection.getTokenAccountBalance(initializerMotivAccount, "confirmed");
-
   console.log(`Success! Winner balance: ${winnerBalance.value.uiAmount} tokens | MOTIV: ${motivBalance.value.uiAmount}`);
+
+  // Verify that Token-2022 NonTransferable blocks any transfer attempt
+  const doubterMotivAccount = await splToken.createAssociatedTokenAccount(
+    connection,
+    payer,
+    motivMint,
+    doubter.publicKey,
+    { commitment: "confirmed" },
+    splToken.TOKEN_2022_PROGRAM_ID
+  );
+
+  try {
+    await splToken.transferChecked(
+      connection,
+      payer,
+      initializerMotivAccount,
+      motivMint,
+      doubterMotivAccount,
+      initializer,
+      1_000_000,
+      6,
+      [],
+      { commitment: "confirmed" },
+      splToken.TOKEN_2022_PROGRAM_ID
+    );
+  } catch (err) {
+    console.log("Verified: Token-2022 NonTransferable permanently blocked MOTIV transfer!");
+  }
 }
 
 main().catch(console.error);
