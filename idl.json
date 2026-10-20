@@ -1,1 +1,99 @@
-{"version":"0.1.0","name":"dopamine_escrow","instructions":[{"name":"initializeEscrow","accounts":[{"name":"initializer","isMut":true,"isSigner":true},{"name":"verifier","isMut":false,"isSigner":false},{"name":"mint","isMut":false,"isSigner":false},{"name":"escrowAccount","isMut":true,"isSigner":false},{"name":"initializerTokenAccount","isMut":true,"isSigner":false},{"name":"vaultTokenAccount","isMut":true,"isSigner":false},{"name":"systemProgram","isMut":false,"isSigner":false},{"name":"tokenProgram","isMut":false,"isSigner":false},{"name":"rent","isMut":false,"isSigner":false}],"args":[{"name":"amount","type":"u64"}]},{"name":"completeAction","accounts":[{"name":"verifier","isMut":false,"isSigner":true},{"name":"escrowAccount","isMut":true,"isSigner":false},{"name":"vaultTokenAccount","isMut":true,"isSigner":false},{"name":"initializerTokenAccount","isMut":true,"isSigner":false},{"name":"tokenProgram","isMut":false,"isSigner":false}],"args":[]}],"accounts":[{"name":"EscrowAccount","type":{"kind":"struct","fields":[{"name":"initializer","type":"publicKey"},{"name":"verifier","type":"publicKey"},{"name":"amount","type":"u64"},{"name":"isCompleted","type":"bool"},{"name":"bump","type":"u8"}]}}],"errors":[{"code":6000,"name":"AlreadyCompleted","msg":"This Proof-of-Action escrow has already been completed."},{"code":6001,"name":"UnauthorizedVerifier","msg":"Unauthorized verifier signature."}]}
+{
+  "version": "0.1.0",
+  "name": "dopamine_escrow",
+  "instructions": [
+    {
+      "name": "initializeEscrow",
+      "accounts": [
+        { "name": "initializer", "isMut": true, "isSigner": true },
+        { "name": "verifier", "isMut": false, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAccount", "isMut": true, "isSigner": false },
+        { "name": "initializerTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "vaultTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "rent", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" }
+      ]
+    },
+    {
+      "name": "fundCounterPool",
+      "accounts": [
+        { "name": "doubter", "isMut": true, "isSigner": true },
+        { "name": "escrowAccount", "isMut": true, "isSigner": false },
+        { "name": "vaultTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "doubterTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "counterAmount", "type": "u64" }
+      ]
+    },
+    {
+      "name": "completeAction",
+      "accounts": [
+        { "name": "verifier", "isMut": false, "isSigner": true },
+        { "name": "escrowAccount", "isMut": true, "isSigner": false },
+        { "name": "vaultTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "initializerTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "motivMint", "isMut": true, "isSigner": false },
+        { "name": "initializerMotivAccount", "isMut": true, "isSigner": false },
+        { "name": "motivAuthority", "isMut": false, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "token2022Program", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "failAction",
+      "accounts": [
+        { "name": "verifier", "isMut": false, "isSigner": true },
+        { "name": "escrowAccount", "isMut": true, "isSigner": false },
+        { "name": "vaultTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "doubterTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "EscrowAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "initializer", "type": "publicKey" },
+          { "name": "verifier", "type": "publicKey" },
+          { "name": "doubter", "type": "publicKey" },
+          { "name": "amount", "type": "u64" },
+          { "name": "counterAmount", "type": "u64" },
+          { "name": "isCompleted", "type": "bool" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "AlreadyCompleted",
+      "msg": "This Proof-of-Action escrow has already been completed."
+    },
+    {
+      "code": 6001,
+      "name": "UnauthorizedVerifier",
+      "msg": "Unauthorized verifier signature."
+    },
+    {
+      "code": 6002,
+      "name": "NonTransferableRequired",
+      "msg": "MOTIV mint must use the Token-2022 NonTransferable extension."
+    }
+  ],
+  "metadata": {
+    "address": "AUWtLgwXV2wxFoKRHo5NTiDW15q867ynR2Stky81JhT9"
+  }
+}
