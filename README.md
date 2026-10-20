@@ -37,16 +37,16 @@ A decentralized market where users bet on themselves:
 
 - **Blockchain:** Solana
 - **Smart Contracts:** Rust (Anchor Framework)
-- **Token Standard:** SPL Token & Token-2022 (`NonTransferable` Soulbound standard for `MOTIV`)
+- **Token Standard:** SPL Token (Pools) + Token-2022 (`NonTransferable` extension for Soulbound `MOTIV`)
 - **Verification:** AI Oracles + Staked Validators
 - **UI:** Web3Auth + Telegram Mini App
 
 ## Status
 
-**Status:** Dual Pools + `MOTIV` minting logic deployed and tested on Solana Devnet (`Seeking pre-seed`).
+**Status:** Dual Pools + Token-2022 `NonTransferable` (`MOTIV`) minting logic deployed and tested on Solana Devnet (`Seeking pre-seed`).
 - Creator stake + Doubter counter-pool settlement works on-chain (`src/lib.rs`).
-- Winner receives 100% of the pool + 1 `MOTIV` reputation token.
-- Automated test suite (`tests/anchor.test.ts`) and client verification script (`client/src/index.ts`) passing on Devnet.
+- Winner receives 100% of the pool + 1 native Soulbound `MOTIV` reputation token (Token-2022 `NonTransferable`).
+- Client verification script (`client/src/index.ts`) passing on Devnet.
 
 ## Smart Contract (Solana Devnet)
 
