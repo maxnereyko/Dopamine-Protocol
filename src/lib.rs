@@ -1,6 +1,17 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{
-    self, FreezeAccount, Mint, MintTo, ThawAccount, Token, TokenAccount, Transfer,
+use anchor_spl::{
+    token::{self, Mint, Token, TokenAccount, Transfer},
+    token_2022::{
+        self,
+        spl_token_2022::{
+            extension::{
+                non_transferable::NonTransferable, BaseStateWithExtensions, StateWithExtensions,
+            },
+            state::Mint as Token2022Mint,
+        },
+        MintTo as MintTo2022, Token2022,
+    },
+    token_interface::{Mint as InterfaceMint, TokenAccount as InterfaceTokenAccount},
 };
 
 declare_id!("AUWtLgwXV2wxFoKRHo5NTiDW15q867ynR2Stky81JhT9");
@@ -9,6 +20,7 @@ declare_id!("AUWtLgwXV2wxFoKRHo5NTiDW15q867ynR2Stky81JhT9");
 pub mod dopamine_escrow {
     use super::*;
 
+    // 1. Initialize escrow and lock creator stake
     pub fn initialize_escrow(
         ctx: Context<InitializeEscrow>,
         amount: u64,
@@ -33,6 +45,7 @@ pub mod dopamine_escrow {
         Ok(())
     }
 
+    // 2. Fund the counter-pool (Doubter bets against the user)
     pub fn fund_counter_pool(
         ctx: Context<FundCounterPool>,
         counter_amount: u64,
@@ -62,6 +75,7 @@ pub mod dopamine_escrow {
         Ok(())
     }
 
+    // 3. Success: User claims the dual pool + mints Token-2022 NonTransferable MOTIV
     pub fn complete_action(ctx: Context<CompleteAction>) -> Result<()> {
         require!(
             !ctx.accounts.escrow_account.is_completed,
@@ -71,6 +85,16 @@ pub mod dopamine_escrow {
             ctx.accounts.verifier.key() == ctx.accounts.escrow_account.verifier,
             EscrowError::UnauthorizedVerifier
         );
+
+        // Verify on-chain that motiv_mint has the Token-2022 NonTransferable extension enabled
+        {
+            let mint_info = ctx.accounts.motiv_mint.to_account_info();
+            let mint_data = mint_info.try_borrow_data()?;
+            let mint_with_ext = StateWithExtensions::<Token2022Mint>::unpack(&mint_data)?;
+            mint_with_ext
+                .get_extension::<NonTransferable>()
+                .map_err(|_| error!(EscrowError::NonTransferableRequired))?;
+        }
 
         let initializer_key = ctx.accounts.escrow_account.initializer;
         let bump = ctx.accounts.escrow_account.bump;
@@ -84,6 +108,7 @@ pub mod dopamine_escrow {
         let seeds = &[b"escrow".as_ref(), initializer_key.as_ref(), &[bump]];
         let signer = &[&seeds[..]];
 
+        // Transfer total reward pool to winner
         let cpi_accounts = Transfer {
             from: ctx.accounts.vault_token_account.to_account_info(),
             to: ctx.accounts.initializer_token_account.to_account_info(),
@@ -93,54 +118,30 @@ pub mod dopamine_escrow {
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
         token::transfer(cpi_ctx, total_payout)?;
 
+        // Mint 1 native Soulbound MOTIV token via Token-2022
         let motiv_bump = ctx.bumps.motiv_authority;
         let motiv_seeds = &[b"motiv_authority".as_ref(), &[motiv_bump]];
         let motiv_signer = &[&motiv_seeds[..]];
 
-        if ctx.accounts.initializer_motiv_account.is_frozen() {
-            let thaw_accounts = ThawAccount {
-                account: ctx.accounts.initializer_motiv_account.to_account_info(),
-                mint: ctx.accounts.motiv_mint.to_account_info(),
-                authority: ctx.accounts.motiv_authority.to_account_info(),
-            };
-            let thaw_ctx = CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                thaw_accounts,
-                motiv_signer,
-            );
-            token::thaw_account(thaw_ctx)?;
-        }
-
-        let motiv_reward: u64 = 1_000_000;
-        let mint_accounts = MintTo {
+        let motiv_reward: u64 = 1_000_000; // 1 MOTIV (6 decimals)
+        let mint_accounts = MintTo2022 {
             mint: ctx.accounts.motiv_mint.to_account_info(),
             to: ctx.accounts.initializer_motiv_account.to_account_info(),
             authority: ctx.accounts.motiv_authority.to_account_info(),
         };
         let mint_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.token_2022_program.to_account_info(),
             mint_accounts,
             motiv_signer,
         );
-        token::mint_to(mint_ctx, motiv_reward)?;
-
-        let freeze_accounts = FreezeAccount {
-            account: ctx.accounts.initializer_motiv_account.to_account_info(),
-            mint: ctx.accounts.motiv_mint.to_account_info(),
-            authority: ctx.accounts.motiv_authority.to_account_info(),
-        };
-        let freeze_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            freeze_accounts,
-            motiv_signer,
-        );
-        token::freeze_account(freeze_ctx)?;
+        token_2022::mint_to(mint_ctx, motiv_reward)?;
 
         ctx.accounts.escrow_account.is_completed = true;
 
         Ok(())
     }
 
+    // 4. Failure: Doubter wins the total dual pool
     pub fn fail_action(ctx: Context<FailAction>) -> Result<()> {
         require!(
             !ctx.accounts.escrow_account.is_completed,
@@ -252,20 +253,21 @@ pub struct CompleteAction<'info> {
     #[account(mut)]
     pub initializer_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
-    pub motiv_mint: Account<'info, Mint>,
+    pub motiv_mint: InterfaceAccount<'info, InterfaceMint>,
     #[account(
         mut,
         constraint = initializer_motiv_account.owner == escrow_account.initializer,
         constraint = initializer_motiv_account.mint == motiv_mint.key()
     )]
-    pub initializer_motiv_account: Account<'info, TokenAccount>,
-    /// CHECK: Global PDA authority for minting and freezing Soulbound MOTIV
+    pub initializer_motiv_account: InterfaceAccount<'info, InterfaceTokenAccount>,
+    /// CHECK: Global PDA authority for minting Soulbound MOTIV
     #[account(
         seeds = [b"motiv_authority"],
         bump
     )]
     pub motiv_authority: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
+    pub token_2022_program: Program<'info, Token2022>,
 }
 
 #[derive(Accounts)]
@@ -308,4 +310,6 @@ pub enum EscrowError {
     AlreadyCompleted,
     #[msg("Unauthorized verifier signature.")]
     UnauthorizedVerifier,
+    #[msg("MOTIV mint must use the Token-2022 NonTransferable extension.")]
+    NonTransferableRequired,
 }
